@@ -1,7 +1,7 @@
 #include "binary_trees.h"
 
 /**
- * smallest - gets the smallest node
+ * smallest - gets the smallest nodee
  * @node: tree to query
  *
  * Return: node with the smallest value
