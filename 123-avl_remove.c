@@ -1,132 +1,109 @@
 #include "binary_trees.h"
 
 /**
- * smallest - gets the smallest nodee
- * @node: tree to query
+ * minValue - Return Leftmost node (minimum value for BST)
+ * @node: node to start from
  *
- * Return: node with the smallest value
+ * Return: Leftmost Node
  */
-static bst_t *smallest(bst_t *node)
+avl_t *minValue(avl_t *node)
 {
-	if (node == NULL)
-		return (NULL);
-	if (node->left == NULL)
-		return (node);
-	return (smallest(node->left));
+	avl_t *current;
+
+	current = node;
+
+	while (current->left)
+		current = current->left;
+
+	return (current);
 }
 
 /**
- * remove_node - removes a value from a binary search tree
- * @root: tree to query
- * @value: value of node to remove
+ * avl_rotation_D - applies rotation for removal
+ * @tree: double pointer to the root node of the AVL tree for
+ * removing the value
  *
- * Return: the parent
+ * Return: No return
  */
-static bst_t *remove_node(bst_t **root, int value)
+void avl_rotation_D(avl_t **tree)
 {
-	bst_t *node = *root, *parent = NULL, **plink, *new, *src = NULL;
+	int balance, bl = 0, br = 0, check = 1;
 
-	while (node != NULL)
+	balance = binary_tree_balance(*tree);
+
+	if ((*tree)->left)
+		bl = binary_tree_balance((*tree)->left);
+	if ((*tree)->right)
+		br = binary_tree_balance((*tree)->left);
+
+	if (balance > 1 && bl >= 0 && check)
+		*tree = binary_tree_rotate_right(*tree), check = 0;
+
+	if (balance > 1 && bl < 0 && check)
 	{
-		if (node->n == value)
-		{
-			parent = node->parent, src = parent;
-			plink = parent == NULL ? root : parent->n > node->n ? &parent->left
-																													: &parent->right;
-			if (node->right == NULL && node->left == NULL)
-				*plink = NULL;
-			else if (node->right == NULL)
-				*plink = node->left, node->left->parent = node->parent;
-			else if (node->left == NULL)
-				*plink = node->right, node->right->parent = node->parent;
-			else
-			{
-				new = smallest(node->right);
-				if (new == node->right)
-					*plink = new, new->parent = node->parent, src = node->parent,
-					new->left = node->left, new->left->parent = new;
-				else
-				{
-					new->parent->left = new->right, src = new->parent;
-					if (new->right)
-						new->right->parent = new->parent;
-					*plink = new, new->parent = parent, new->left = node->left;
-					if (new->left)
-						new->left->parent = new;
-					new->right = node->right;
-					if (new->right)
-						new->right->parent = new;
-				}
-			}
-			free(node);
-			break;
-		}
-		node = value > node->n ? node->right : node->left;
+		(*tree)->left = binary_tree_rotate_left((*tree)->left);
+		*tree = binary_tree_rotate_right(*tree);
+		check = 0;
 	}
-	return (src);
-}
 
-/**
- * adjust_balance_1 - Adjusts the balance of an AVL tree by \
- * rotating the unbalanced subtree.
- * @root: A pointer to the address of the root of the tree.
- * @node: A pointer to the inserted node.
- */
-void adjust_balance_1(avl_t **root, avl_t *node)
-{
-	avl_t *cur = node, *new_root = *root;
-	int balance = 0;
+	if (balance < -1 && br <= 0 && check)
+		*tree = binary_tree_rotate_left(*tree), check = 0;
 
-	while (cur != NULL)
+	if (balance < -1 && br > 0 && check)
 	{
-		balance = binary_tree_balance(cur);
-		if (!((balance >= -1) && (balance <= 1)))
-		{
-			if ((balance == 2) && ((binary_tree_balance(cur->left) == 1)
-				|| (binary_tree_balance(cur->left) == 0)))
-			{
-				new_root = binary_tree_rotate_right(cur);
-			}
-			else if ((balance == 2) && (binary_tree_balance(cur->left) == -1))
-			{
-				cur->left = binary_tree_rotate_left(cur->left);
-				new_root = binary_tree_rotate_right(cur);
-			}
-			else if ((balance == -2) && ((binary_tree_balance(cur->right) == -1)
-				|| (binary_tree_balance(cur->right) == 0)))
-			{
-				new_root = binary_tree_rotate_left(cur);
-			}
-			else if ((balance == 2) && (binary_tree_balance(cur->left) == -1))
-			{
-				cur->right = binary_tree_rotate_right(cur->right);
-				new_root = binary_tree_rotate_left(cur);
-			}
-			new_root = (cur == *root ? new_root : *root);
-			break;
-		}
-		cur = cur->parent;
+		(*tree)->right = binary_tree_rotate_right((*tree)->right);
+		*tree = binary_tree_rotate_left(*tree);
+		check = 0;
 	}
-	*root = new_root;
 }
 
 /**
- * avl_remove - Removes a node with a given value from an AVL tree.
- * @root: A pointer to the root of the AVL tree.
- * @value: The value of the node to remove.
+ * avl_remove - removes a node from an AVL tree
+ * @root: pointer to the root node of the tree for removing a node
+ * @value: value to remove in the tree
  *
- * Return: The new root node, otherwise NULL.
+ * Return: pointer to the created node, or NULL on failure
  */
 avl_t *avl_remove(avl_t *root, int value)
 {
-	avl_t *node = NULL, *new_root = root, *new_node = NULL, *parent = NULL;
+	avl_t *tmp = NULL;
 
-	if (new_root != NULL)
-	{
-		(void)node;
-		(void)new_node;
-		parent = remove_node(&new_root, value);
-		adjust_balance_1(&new_root, parent);
-	}
-	return (new_root);
+	if (!root)
+		return (root);
+
+	if (value < root->n)
+		root->left = avl_remove(root->left, value);
+
+	else if (value > root->n)
+		root->right = avl_remove(root->right, value);
+
+	else
+		if (!(root->left) || !(root->right))
+		{
+			if (root->left)
+				tmp = root->left;
+			else
+				tmp = root->right;
+
+			if (!tmp)
+				tmp = root, root = NULL;
+			else
+			{
+				root->parent = tmp->parent->parent;
+				root->n = tmp->n;
+				root->left = tmp->left;
+				root->right = tmp->right;
+			}
+
+			free(tmp);
+		}
+		else
+		{
+			tmp = minValue(root->right);
+			root->n = tmp->n;
+			root->right = avl_remove(root->right, tmp->n);
+		}
+	if (root)
+		avl_rotation_D(&root);
+	return (root);
 }
